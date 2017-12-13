@@ -484,7 +484,7 @@ for ITER in range(100):
     else:
         strikes = 0
         last_dev_loss = dev_loss
-        model.save('tweet_tag_vae.best.weights')
+        model.save('/usr0/home/mamille2/twitter/models/tweet_tag_vae.best.weights')
         
     if strikes >= PATIENCE:
         print ('Early stopping after {} iterations.')
@@ -492,7 +492,7 @@ for ITER in range(100):
 
 
 try:
-	outpath = '~/nn4nlp-scripts/trained_project.weights'
+	outpath = '/usr0/home/mamille2/twitter/models/trained_project.weights'
 	print("Saving model weights to {}...".format(outpath), end=' ')
 	model.save(outpath)
 	print("done.")
