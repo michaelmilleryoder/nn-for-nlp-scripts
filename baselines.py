@@ -145,8 +145,6 @@ for i, tags in tqdm(enumerate(test_tags), total=len(test_tags)):
             test_y[i, tag_indices[tag]] = 1
 
 
-train_X.shape, train_y.shape, dev_X.shape, dev_y.shape, test_X.shape, test_y.shape
-
 
 # # Build Model
 
@@ -154,39 +152,39 @@ train_X.shape, train_y.shape, dev_X.shape, dev_y.shape, test_X.shape, test_y.sha
 
 print("Building model...")
 
-with tf.device('/cpu:0'):
-	model = Sequential()
-	model.add(Embedding(len(chars) + 1,
-			    64,
-			    input_length=MAX_LENGTH,
-			    trainable=True,
-			    mask_zero=True))
-	model.add(Bidirectional(LSTM(128))) # segfault
-	model.add(Dropout(.5))
-	model.add(Dense(len(top_tags), activation='softmax'))
-	print (model.output_shape)
+#with tf.device('/cpu:0'):
+model = Sequential()
+model.add(Embedding(len(chars) + 1,
+		    64,
+		    input_length=MAX_LENGTH,
+		    trainable=True,
+		    mask_zero=True))
+#model.add(Bidirectional(LSTM(128))) # segfault
+model.add(Bidirectional(LSTM(32))) # segfault if 64 or higher
+model.add(Dropout(.5))
+model.add(Dense(len(top_tags), activation='softmax'))
 
 
-	model.compile(loss='categorical_crossentropy',
-		      optimizer='adam',
-		      metrics=['categorical_accuracy'])
+model.compile(loss='categorical_crossentropy',
+	      optimizer='adam',
+	      metrics=['categorical_accuracy'])
 
 
-	filepath="./weights.twitter.best.hdf5"
-	checkpoint = ModelCheckpoint(filepath, monitor='val_categorical_accuracy', verbose=1, save_best_only=True, mode='max')
-	early_stop = EarlyStopping(monitor='val_categorical_accuracy', patience=3)
-	callbacks_list = [checkpoint, early_stop]
+filepath="~/twitter/models/baseline_weights.hdf5"
+checkpoint = ModelCheckpoint(filepath, monitor='val_categorical_accuracy', verbose=1, save_best_only=True, mode='max')
+early_stop = EarlyStopping(monitor='val_categorical_accuracy', patience=3)
+callbacks_list = [checkpoint, early_stop]
 
-	print("Model output to {}".format(filepath))
+print("Model output to {}".format(filepath))
 
-	print("Training model...")
-	model.fit(train_X,
-		      train_y,
-		      validation_data=(dev_X, dev_y),
-		      shuffle=True,
-		      batch_size=32,
-		      epochs=10,
-		      verbose=True,
-		      callbacks=callbacks_list)
+print("Training model...")
+model.fit(train_X,
+	      train_y,
+	      validation_data=(dev_X, dev_y),
+	      shuffle=True,
+	      batch_size=32,
+	      epochs=10,
+	      verbose=True,
+	      callbacks=callbacks_list)
 
-	print('BiLSTM Baseline Training complete!')
+print('BiLSTM Baseline Training complete!')

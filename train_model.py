@@ -20,7 +20,7 @@ except ImportError:
     import pickle
 
 import dynet_config
-dynet_config.set(mem=8192, random_seed=12345, autobatch=True) # was 2048 mem
+dynet_config.set(mem=4096, random_seed=12345, autobatch=True) # was 2048 mem
 dynet_config.set_gpu()
 
 import dynet as dy
@@ -192,7 +192,6 @@ EMBEDDING_DIM = 128
 HIDDEN_DIM = 512
 Q_DIM = 512
 DROPOUT = 0.2
-# DROPOUT = 0
 ALPHA = 0.01
 EPSILON_MAX = .9
 EPSILON_MIN = 0.00
@@ -367,6 +366,7 @@ def calc_loss(sent, epsilon=0.0):
     crossentropy_loss = dy.binary_log_loss(o, tags_tensor)
                                
     return kl_loss, softmax_loss, crossentropy_loss
+    #return softmax_loss, crossentropy_loss
 
 
 
@@ -391,9 +391,9 @@ for ITER in range(100):
     print()
     print ('Training ... Iteration:', ITER, 'Epsilon:', epsilon)
     for i, batch in enumerate(tqdm(batches)):
-#        dy.renew_cg()
+        dy.renew_cg()
         #dy.renew_cg(immediate_compute=True, check_validity=True) # makes program die--is_valid() not implemented for CUDA yet
-        dy.renew_cg(immediate_compute=True)
+        #dy.renew_cg(immediate_compute=True)
         losses = []
         for sent_id, sent in enumerate(batch):
             if len(sent[1]) < 1 or len(sent[0]) < 3:
@@ -403,15 +403,12 @@ for ITER in range(100):
             #train_loss += total_loss.value()
             
             # Gradually increase KL-Divergence loss
-#             if steps < 15000:
-#                 kl_weight = 1 / (1 + np.exp(-0.001 * steps + 5))
-#             else:
-#                 kl_weight = 1.0
+            if steps < 15000:
+                kl_weight = 1 / (1 + np.exp(-0.001 * steps + 5))
+            else:
+                #kl_weight = 1.0
+                kl_weight = 0.4
 
-            # Zero out KL weight
-            #kl_weight = 0.0
-            kl_weight = 1e-6
-                
             losses.append(dy.esum([kl_weight * kl_loss, softmax_loss, tag_loss]))
             #losses.append(dy.esum([softmax_loss, tag_loss])) # fails with gradient nan error
 
@@ -427,6 +424,7 @@ for ITER in range(100):
         batch_loss = dy.esum(losses)/BATCH_SIZE
         train_loss += batch_loss.value()
         batch_loss.backward()
+        #batch_loss.backward(full=True)
         trainer.update() # fails here with gradient nan or inf error
         
         
@@ -436,7 +434,7 @@ for ITER in range(100):
 
         #    print("--finished %r sentences" % (sent_id + 1))
 
-    # Gradually increase KL-Divergence loss
+    # Gradually increase epsilon
     if steps < 100000:
         epsilon = .9 / (1 + np.exp(-0.0001 * steps + 5))
     else:
@@ -465,8 +463,7 @@ for ITER in range(100):
         dev_kl_loss += kl_loss.value()
         dev_reconstruct_loss += softmax_loss.value()
         dev_tag_loss += tag_loss.value()
-        #dev_loss += kl_loss.value() + softmax_loss.value() + tag_loss.value()
-        dev_loss += softmax_loss.value() + tag_loss.value() # take out kl_loss
+        dev_loss += kl_loss.value() + softmax_loss.value() + tag_loss.value()
 
         dev_words += len(sent[0])
         trainer.update()
@@ -479,6 +476,7 @@ for ITER in range(100):
     print("iter %r: dev loss/word=%.4f, kl loss/word=%.4f, reconstruction loss/word=%.4f, ppl=%.4f, tag loss=%.2f" % (
         ITER, dev_loss / dev_words, dev_kl_loss / dev_words, dev_reconstruct_loss / dev_words,
         dev_ppl, dev_tag_loss / len(dev)))
+
     if dev_loss > last_dev_loss and ITER > 9:
         strikes += 1
     else:
