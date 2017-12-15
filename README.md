@@ -14,3 +14,4 @@ Scripts for CMU Neural Networks for NLP course
 * Preliminary implementation with KL annealing is at `NNfNLP_Assignment_3.ipynb`.
 * Attempted modification with no KL loss term is at `train_model_nokl.py`.
 * Attempted modification with limited KL loss weight is at `train_model.py`.
+* Baselines are at `baselines.py`.
